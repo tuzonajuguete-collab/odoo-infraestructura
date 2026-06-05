@@ -1,0 +1,22 @@
+# -------------------------------------------------------------------------
+# ARCHIVOS DE CONFIGURACIÓN INTERNA DE TERRAFORM (No subirlos)
+# -------------------------------------------------------------------------
+.terraform/
+.terraform.lock.hcl
+
+# -------------------------------------------------------------------------
+# ESTADO DE TERRAFORM (¡CRÍTICO! Contiene credenciales y secretos de clientes)
+# -------------------------------------------------------------------------
+*.tfstate
+*.tfstate.*
+
+# -------------------------------------------------------------------------
+# LLAVES PRIVADAS SSH (Seguridad de acceso al servidor)
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+*.pem
+
+# -------------------------------------------------------------------------
+# ARCHIVOS DE VARIABLES ESPECÍFICAS (Opcional pero recomendado)
+# Si tus archivos .tfvars contienen contraseñas o tokens, descomenta la línea de abajo:
+# *.tfvars
