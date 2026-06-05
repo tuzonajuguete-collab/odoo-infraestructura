@@ -164,7 +164,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 # =========================================================================
 resource "aws_eip" "odoo_static_ip" {
   domain = "vpc"
-  tags = merge(local.tags_compartidas, { Name = local.nombre_ip })
+  tags   = merge(local.tags_compartidas, { Name = local.nombre_ip })
 }
 
 resource "aws_instance" "odoo_server" {
@@ -361,12 +361,12 @@ resource "aws_cloudwatch_metric_alarm" "cpu_alarm" {
   alarm_actions       = [aws_sns_topic.alerts_topic.arn]
 
   dimensions = { InstanceId = aws_instance.odoo_server.id }
-  tags = local.tags_compartidas
+  tags       = local.tags_compartidas
 }
 
 # 💡 AJUSTE DE UMBRALES DE CRITICIDAD (MÉTRICAS DEL AGENTE):
 # -----------------------------------------------------------------------
-# Los porcentajes límetes (threshold) definen cuándo se dispara el correo de alerta:
+# Los porcentajes límites (threshold) definen cuándo se dispara el correo de alerta:
 # - En TESTING: Puedes dejar límites altos (ej. RAM al 95%, Disco al 90%) ya que el colapso no es grave.
 # - En PRODUCCIÓN: Se aconseja un umbral predictivo (ej. RAM al 85%, Disco al 80%) para darte
 #   un colchón de tiempo operativo antes de que el disco se llene por completo e interrumpa el servicio.
@@ -403,7 +403,7 @@ resource "aws_cloudwatch_metric_alarm" "ram_alarm" {
   alarm_actions       = [aws_sns_topic.alerts_topic.arn]
 
   dimensions = { InstanceId = aws_instance.odoo_server.id }
-  tags = local.tags_compartidas
+  tags       = local.tags_compartidas
 }
 
 resource "aws_cloudwatch_metric_alarm" "instance_health_alarm" {
@@ -419,7 +419,7 @@ resource "aws_cloudwatch_metric_alarm" "instance_health_alarm" {
   alarm_actions       = [aws_sns_topic.alerts_topic.arn]
 
   dimensions = { InstanceId = aws_instance.odoo_server.id }
-  tags = local.tags_compartidas
+  tags       = local.tags_compartidas
 }
 
 # =========================================================================
@@ -445,6 +445,81 @@ resource "aws_budgets_budget" "client_budget" {
     notification_type          = "ACTUAL"
     subscriber_email_addresses = [var.notif_email]
   }
+}
+
+# =========================================================================
+# 9. PANEL DE CONTROL VISUAL (CLOUDWATCH DASHBOARD)
+# =========================================================================
+resource "aws_cloudwatch_dashboard" "client_dashboard" {
+  dashboard_name = "Dashboard-${var.cliente_name}-${var.environment}"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            [ "CWAgent", "mem_used_percent", "InstanceId", "${aws_instance.odoo_server.id}" ]
+          ]
+          period  = 300
+          stat    = "Average"
+          region  = "${var.aws_region}"
+          title   = "🧠 Consumo de Memoria RAM (%) - ${upper(var.cliente_name)}"
+          view    = "timeSeries"
+          stacked = false
+          yAxis = {
+            left = { min = 0, max = 100 }
+          }
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            [ "AWS/EC2", "CPUUtilization", "InstanceId", "${aws_instance.odoo_server.id}" ]
+          ]
+          period  = 300
+          stat    = "Average"
+          region  = "${var.aws_region}"
+          title   = "⚡ Uso de Procesador CPU (%) - ${upper(var.cliente_name)}"
+          view    = "timeSeries"
+          stacked = false
+          yAxis = {
+            left = { min = 0, max = 100 }
+          }
+        }
+      },
+      {
+        type   = "metric"
+        x      = 6
+        y      = 6
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            [ "CWAgent", "disk_used_percent", "InstanceId", "${aws_instance.odoo_server.id}", "path", "/" ]
+          ]
+          period  = 300
+          stat    = "Average"
+          region  = "${var.aws_region}"
+          title   = "💾 Espacio Ocupado en Disco Duro (%) - ${upper(var.cliente_name)}"
+          view    = "timeSeries"
+          stacked = false
+          yAxis = {
+            left = { min = 0, max = 100 }
+          }
+        }
+      }
+    ]
+  })
 }
 
 # =========================================================================
